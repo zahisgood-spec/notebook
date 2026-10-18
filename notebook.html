@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>筆記本</title>
+<style>
+:root{--bg:#fff;--side:#f5f6f7;--ink:#1b1f24;--mute:#8a939b;--line:#e3e6e8;--sel:#e6edf8;--accent:#2f6fed;--on:#fff;--danger:#d64545;
+  --font:system-ui,-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Noto Sans Mono",monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17191c;--side:#1e2125;--ink:#e9ecef;--mute:#80898f;--line:#2b2f34;--sel:#26354d;--accent:#6c9bff;--on:#0b1220;--danger:#ff7b7b}}
+:root[data-theme="dark"]{--bg:#17191c;--side:#1e2125;--ink:#e9ecef;--mute:#80898f;--line:#2b2f34;--sel:#26354d;--accent:#6c9bff;--on:#0b1220;--danger:#ff7b7b}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--font);padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{display:grid;grid-template-columns:300px 1fr;height:100%}
+.side{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.head{position:relative;display:flex;align-items:center;gap:8px;padding:16px 16px 8px}
+.head h1{flex:1;margin:0;font-size:20px}
+.btn{border:0;border-radius:8px;background:transparent;padding:7px 12px;color:var(--mute);transition:background .15s,color .15s,transform .1s}
+.btn:hover{background:var(--sel);color:var(--ink)}
+.btn.main{background:var(--accent);color:var(--on);font-weight:600}
+.btn.main:hover{background:var(--accent);filter:brightness(1.1)}
+.btn.del:hover{color:var(--danger)}
+.btn:active{transform:scale(.96)}
+.menu{position:absolute;z-index:10;top:100%;left:12px;right:12px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.18);transform-origin:50% 0;animation:menuIn .28s cubic-bezier(.2,.8,.2,1)}
+.menu[hidden]{display:none}
+.menu button{display:block;width:100%;text-align:left;border:0;background:transparent;border-radius:8px;padding:10px 12px}
+.menu button:hover{background:var(--sel)}
+.menu b{display:block}.menu span{display:block;font-size:13px;color:var(--mute)}
+.q{margin:4px 16px 8px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.rows{flex:1;overflow-y:auto;list-style:none;margin:0;padding:0 8px 16px}
+.rows li{overflow:hidden;max-height:120px;transition:transform .2s ease-out}
+.rows li.add{animation:cardIn .55s cubic-bezier(.2,.8,.2,1) backwards;transform-origin:50% 0}
+.rows li.spin{animation:spin .7s cubic-bezier(.3,.7,.2,1) backwards}
+.rows li.out{animation:out .4s ease forwards;transform-origin:50% 0}
+.rows li.grp{max-height:none;padding:10px 12px 4px;font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--mute)}
+.row{display:block;width:100%;text-align:left;border:0;background:transparent;border-radius:8px;padding:10px 12px}
+.row:hover,.row[aria-current="true"]{background:var(--sel)}
+.row b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row span{display:block;color:var(--mute);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{font-style:normal;font-size:12px;font-weight:500;padding:1px 8px;border-radius:99px;margin-right:6px;--c:var(--accent);color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}
+.tag[data-t=code]{--c:#12a37f}.tag[data-t=todo]{--c:#d9822b}
+.none{padding:32px 16px;text-align:center;color:var(--mute)}
+.pane{display:flex;flex-direction:column;min-width:0;min-height:0}
+.bar{display:flex;align-items:center;gap:4px;padding:10px 20px;border-bottom:1px solid var(--line)}
+.st{flex:1;color:var(--mute);font-size:13px}
+.st:before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:6px;vertical-align:1px}
+.st.sv:before{background:var(--mute);animation:beat .8s infinite}
+.back{display:none}
+.scroll{flex:1;overflow-y:auto;padding:40px 24px 80px}
+.sheet{max-width:680px;margin:0 auto;transform-origin:0 50%;animation:flipIn .55s cubic-bezier(.2,.8,.2,1)}
+.kind{margin-bottom:8px}
+.ti{width:100%;border:0;border-bottom:1px dashed var(--line);background:transparent;font:700 30px/1.3 var(--font);padding:0 0 8px;margin-bottom:16px;outline:none;transition:border-color .15s}
+.ti:focus{border-bottom-color:var(--accent)}
+.bd{display:block;width:100%;border:0;background:transparent;resize:none;outline:none;font-size:18px;line-height:1.9;padding:0;min-height:55vh}
+.ti::placeholder,.bd::placeholder,.cb::placeholder,.addi::placeholder{color:var(--mute)}
+.empty{height:100%;display:grid;place-items:center;text-align:center;color:var(--mute);padding:24px}
+.empty p{margin:0 0 16px}
+/* code */
+.code{background:#0f1720;color:#e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.16)}
+.ch{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid #1f2b38}
+.ch select{background:#18222e;color:#cbd5e1;border:1px solid #2a3947;border-radius:6px;padding:4px 8px;font-size:13px}
+.cp{border:0;background:#2f6fed;color:#fff;border-radius:8px;padding:7px 16px;font-size:14px;font-weight:600;transition:background .15s,transform .1s}
+.cp.ok{background:#12a37f}
+.rows li{position:relative}
+.row.hc b{padding-right:60px}
+.rc{position:absolute;right:10px;top:9px;border:1px solid var(--line);background:var(--bg);color:var(--mute);border-radius:6px;font-size:12px;padding:1px 8px;opacity:0;transition:opacity .15s,background .15s}
+.rows li:hover .rc,.rc:focus-visible,.rc.ok{opacity:1}
+.rc:hover{color:var(--ink);border-color:var(--accent)}
+.rc.ok{background:#12a37f;border-color:#12a37f;color:#fff}
+@media (hover:none){.rc{opacity:1}}
+.cp:hover{filter:brightness(1.12)}.cp:active{transform:scale(.96)}
+.cw{display:flex}
+.ln{margin:0;padding:14px 10px 14px 14px;color:#566678;text-align:right;font:14px/1.7 var(--mono);user-select:none}
+.cb{flex:1;min-width:0;min-height:240px;border:0;background:transparent;color:inherit;outline:none;resize:none;white-space:pre;overflow-x:auto;overflow-y:hidden;font:14px/1.7 var(--mono);padding:14px}
+/* todo */
+.prog{color:var(--mute);font-size:14px;margin-bottom:8px}
+.it{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);transform-origin:50% 0}
+.it.in{animation:itemIn .38s cubic-bezier(.2,.8,.2,1)}
+.it.gone{animation:itemOut .26s ease forwards}
+.ck{position:relative;display:grid}
+.ck input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.box{width:22px;height:22px;border-radius:6px;border:2px solid var(--mute);display:grid;place-items:center;transition:background .15s,border-color .15s}
+.ck input:checked+.box{background:var(--accent);border-color:var(--accent)}
+.ck input:checked+.box:after{content:"";width:5px;height:10px;border:solid var(--on);border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.ck input:focus-visible+.box{outline:2px solid var(--accent);outline-offset:2px}
+.box.flip{animation:coin .5s ease}
+.tx{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:17px;padding:4px 0}
+.it.done .tx{color:var(--mute);text-decoration:line-through}
+.x{border:0;background:transparent;color:var(--mute);opacity:0;border-radius:6px;padding:4px 8px}
+.it:hover .x,.x:focus-visible{opacity:1}.x:hover{color:var(--danger)}
+@media (hover:none){.x{opacity:.6}}
+.addi{width:100%;margin-top:10px;border:1px dashed var(--line);border-radius:8px;background:transparent;padding:10px 12px;outline:none}
+.addi:focus{border-color:var(--accent)}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,8px);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:.2s}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.tabs{display:flex;gap:4px;margin:4px 16px 8px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:3px}
+.tabs button{flex:1;border:0;background:transparent;border-radius:7px;padding:6px;color:var(--mute);transition:background .15s,color .15s}
+.tabs button[aria-pressed="true"]{background:var(--sel);color:var(--ink);font-weight:600}
+.tabs small{color:var(--mute);font-size:12px}
+.tinfo{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 16px 8px;font-size:13px;color:var(--mute)}
+.tinfo[hidden]{display:none}
+.toast.on.act{pointer-events:auto}
+.toast .ta{margin-left:14px;border:0;background:transparent;color:inherit;font-weight:700;text-decoration:underline;padding:0}
+.sheet [disabled]{opacity:.7;cursor:default}
+.cats{display:flex;gap:6px;margin:0 16px 8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.cats[hidden],.cmgr[hidden]{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--bg);border-radius:99px;padding:3px 12px;font-size:14px;color:var(--mute);transition:background .15s,color .15s,border-color .15s,transform .1s}
+.chip:hover{border-color:var(--accent);color:var(--ink)}
+.chip:active{transform:scale(.95)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on)}
+.chip.add{border-style:dashed}
+.chip.new{animation:chipIn .45s cubic-bezier(.2,.8,.2,1);transform-origin:50% 0}
+.chip small{opacity:.7}
+.cin{flex:none;width:130px;border:1px solid var(--accent);border-radius:99px;padding:3px 12px;font-size:14px;background:var(--bg);outline:none}
+.cmgr{display:flex;gap:4px;margin:0 16px 8px}
+.cmgr .btn{padding:3px 10px;font-size:13px}
+.cn{font-style:normal;font-size:12px;color:var(--mute);border:1px solid var(--line);border-radius:99px;padding:0 7px;margin-right:6px}
+.csel{max-width:120px;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:5px 8px;font-size:14px;margin-right:4px}
+@keyframes chipIn{from{opacity:0;transform:perspective(500px) rotateX(-90deg)}to{opacity:1;transform:perspective(500px)}}
+.sync{position:relative}
+.sync i{position:absolute;right:3px;top:3px;width:8px;height:8px;border-radius:50%}
+.sync[data-s=ok] i{background:#12a37f}
+.sync[data-s=err] i{background:var(--danger)}
+.sync[data-s=sync] i{background:var(--accent);animation:beat .7s infinite}
+.ov{position:fixed;inset:0;z-index:50;background:rgba(10,14,20,.45);display:grid;place-items:center;padding:16px;overflow-y:auto}
+.ov[hidden]{display:none}
+.dlg{width:100%;max-width:520px;max-height:100%;overflow-y:auto;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.35);animation:dlgIn .45s cubic-bezier(.2,.8,.2,1)}
+.dlg h2{margin:0 0 6px;font-size:20px}
+.dlg p{margin:0 0 12px;color:var(--mute);font-size:14px}
+.dlg ol{margin:0 0 12px;padding-left:20px;font-size:14px}
+.dlg li{margin-bottom:10px}
+.dlg pre{margin:6px 0;background:var(--side);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:12px/1.5 var(--mono);overflow-x:auto}
+.dlg textarea,.dlg .fi{display:block;width:100%;border:1px solid var(--line);border-radius:8px;background:var(--side);padding:8px 10px;font:13px/1.5 var(--mono);color:var(--ink);outline:none;margin-top:6px}
+.dlg textarea{min-height:84px;resize:vertical}
+.dlg textarea:focus,.dlg .fi:focus{border-color:var(--accent)}
+.dlg .btn{border:1px solid var(--line)}
+.dlg .btn.main{border-color:var(--accent)}
+.dlg .r2{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:14px}
+.dlg code{font:13px var(--mono);background:var(--side);border:1px solid var(--line);border-radius:6px;padding:2px 8px}
+.dlg .dw{font-size:13px;background:var(--sel);border-radius:8px;padding:8px 10px;margin-bottom:12px}
+.dlg .de{color:var(--danger);font-size:13px;min-height:18px;margin-bottom:6px}
+.dlg .acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+@keyframes dlgIn{from{opacity:0;transform:perspective(900px) rotateX(-18deg) translateY(12px)}to{opacity:1;transform:perspective(900px)}}
+@keyframes cardIn{from{opacity:0;transform:perspective(700px) rotateX(-80deg)}to{opacity:1;transform:perspective(700px) rotateX(0)}}
+@keyframes spin{from{transform:perspective(700px) rotateY(0)}to{transform:perspective(700px) rotateY(360deg)}}
+@keyframes out{50%{opacity:0;transform:perspective(700px) rotateX(80deg);max-height:120px}to{opacity:0;transform:perspective(700px) rotateX(80deg);max-height:0}}
+@keyframes flipIn{from{opacity:0;transform:perspective(1200px) rotateY(-16deg) rotateX(5deg) translateZ(-60px)}to{opacity:1;transform:perspective(1200px)}}
+@keyframes menuIn{from{opacity:0;transform:perspective(700px) rotateX(-28deg) translateY(-6px)}to{opacity:1;transform:perspective(700px)}}
+@keyframes itemIn{from{opacity:0;transform:perspective(600px) rotateX(-60deg)}to{opacity:1;transform:perspective(600px)}}
+@keyframes itemOut{to{opacity:0;transform:perspective(600px) rotateX(60deg)}}
+@keyframes coin{from{transform:perspective(200px) rotateY(0)}to{transform:perspective(200px) rotateY(360deg)}}
+@keyframes beat{50%{opacity:.25}}
+@media (max-width:700px){
+  .app{grid-template-columns:1fr}
+  .pane{display:none}
+  .app.editing .side{display:none}
+  .app.editing .pane{display:flex}
+  .back{display:inline-block}
+  .bar{padding:8px 12px}.scroll{padding:24px 18px 80px}.ti{font-size:26px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="side">
+    <div class="head">
+      <h1>筆記本</h1>
+      <button class="btn" id="theme" aria-label="切換深色或淺色">◐</button>
+      <button class="btn sync" id="sync" aria-label="雲端同步" data-s="off">☁<i></i></button>
+      <button class="btn main" id="new" aria-haspopup="true" aria-expanded="false">＋ 新增</button>
+      <div class="menu" id="menu" hidden>
+        <button data-t="text"><b>文字筆記</b><span>想法、日記、隨手記</span></button>
+        <button data-t="code"><b>程式碼</b><span>有行號，可一鍵複製</span></button>
+        <button data-t="todo"><b>待辦清單</b><span>可勾選的項目</span></button>
+      </div>
+    </div>
+    <div class="tabs" role="group" aria-label="檢視"><button data-v="notes" aria-pressed="true">筆記 <small id="cN"></small></button><button data-v="trash" aria-pressed="false">垃圾桶 <small id="cT"></small></button></div>
+    <div class="cats" id="cats"></div><div class="cmgr" id="cmgr" hidden></div>
+    <input class="q" id="q" type="search" placeholder="搜尋" aria-label="搜尋筆記">
+    <div class="tinfo" id="tinfo" hidden><span>30 天後自動永久刪除</span><button class="btn" id="et">清空垃圾桶</button></div>
+    <ul class="rows" id="rows"></ul>
+  </aside>
+  <section class="pane" id="pane"></section>
+</div>
+<div class="ov" id="ov" hidden><div class="dlg" id="dlg" role="dialog" aria-modal="true" aria-labelledby="dt"></div></div>
+<div class="toast" id="toast" role="status"></div>
+<script>
+(function(){
+var KEY='mopage-v1',notes=[],cur=null,query='',newId=null,spinId=null,first=true,view='notes',cats=[],catF='all',editCat=null,newCatId=null,tomb={},cfg=null,busy=false,pT=null,snap={},showKey=false;
+var TY={text:'文字',code:'程式碼',todo:'待辦'};
+var LANGS=['JavaScript','Python','HTML/CSS','SQL','Bash','C/C++','Java','其他'];
+var RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+var $=function(i){return document.getElementById(i)};
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function norm(n){n.type=TY[n.type]?n.type:'text';n.items=Array.isArray(n.items)?n.items:[];n.lang=n.lang||'JavaScript';n.body=n.body||'';n.title=n.title||'';n.deleted=n.deleted||0;n.cat=n.cat||'';n.v=n.v||n.updated||Date.now();return n}
+function getCat(id){for(var i=0;i<cats.length;i++)if(cats[i].id===id)return cats[i]}
+function saveCats(){if(!persist())toast('無法儲存分類');sched()}
+function load(){try{tomb=JSON.parse(localStorage.getItem('mopage-tomb'))||{}}catch(e){tomb={}}
+  try{cfg=JSON.parse(localStorage.getItem('mopage-sync'))}catch(e){cfg=null}
+  try{cats=JSON.parse(localStorage.getItem('mopage-cats'))||[]}catch(e){cats=[]}
+  if(!Array.isArray(cats))cats=[];cats=cats.filter(function(c){return c&&c.id&&c.name});
+  try{notes=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){notes=[]}
+  if(!notes.length&&!cfg){var t=Date.now();notes=[
+    {id:'s-welcome',type:'text',title:'歡迎使用',pinned:true,updated:t-2,body:'這是一般文字筆記。\n\n按左上角「＋ 新增」可以選：文字、程式碼、待辦清單。\n釘選的筆記會固定在列表最上面。'},
+    {id:'s-code',type:'code',title:'防抖函式 debounce',lang:'JavaScript',updated:t-1,body:'function debounce(fn, ms) {\n  let t;\n  return (...args) => {\n    clearTimeout(t);\n    t = setTimeout(() => fn(...args), ms);\n  };\n}'},
+    {id:'s-todo',type:'todo',title:'這週要做',updated:t,items:[{t:'新增第一則筆記',d:false},{t:'試試置頂和待辦',d:true}]}]}
+  notes.forEach(norm);notes.forEach(function(n){if(n.cat&&!getCat(n.cat))n.cat=''});var cut=Date.now()-30*864e5;notes=notes.filter(function(n){if(n.deleted&&n.deleted<=cut){tomb[n.id]=Date.now();return false}return true});pruneTomb();resnap()}
+function jn(n){return JSON.stringify(n,function(k,v){return k==='v'?undefined:v})}
+function resnap(){snap={};notes.forEach(function(n){snap[n.id]=jn(n)})}
+function stamp(){notes.forEach(function(n){var j=jn(n);if(snap[n.id]!==j){if(snap[n.id]!==undefined)n.v=Date.now();snap[n.id]=j}})}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(notes));localStorage.setItem('mopage-cats',JSON.stringify(cats));localStorage.setItem('mopage-tomb',JSON.stringify(tomb));return true}catch(e){return false}}
+function pruneTomb(){var c=Date.now()-90*864e5;Object.keys(tomb).forEach(function(k){if(tomb[k]<c)delete tomb[k]})}
+function sched(){if(!cfg||busy)return;clearTimeout(pT);pT=setTimeout(function(){syncNow()},2500)}
+function save(){stamp();if(!persist())toast('無法儲存：瀏覽器儲存空間不可用');sched()}
+function toast(t,a,fn){var e=$('toast');e.textContent=t;e.classList.remove('act');
+  if(a){var b=document.createElement('button');b.className='ta';b.textContent=a;b.onclick=function(){fn();e.classList.remove('on')};e.appendChild(b);e.classList.add('act')}
+  e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove('on')},a?5000:1800)}
+function get(id){for(var i=0;i<notes.length;i++)if(notes[i].id===id)return notes[i]}
+function snip(n){
+  if(n.type==='todo'){var d=n.items.filter(function(i){return i.d}).length;return n.items.length?'完成 '+d+'/'+n.items.length+' · '+n.items[0].t:'空清單'}
+  if(n.type==='code'){var l=n.body.split('\n').filter(function(x){return x.trim()})[0];return l?l.trim():'沒有內容'}
+  return n.body.replace(/\s+/g,' ').trim()||'沒有內容'}
+function renderList(){
+  var q=query.toLowerCase(),ul=$('rows');ul.innerHTML='';
+  var rows=notes.filter(function(n){if(view==='trash'?!n.deleted:!!n.deleted)return false;if(view==='notes'&&catF!=='all'&&n.cat!==catF)return false;return !q||(n.title+'\n'+n.body+'\n'+n.items.map(function(i){return i.t}).join('\n')).toLowerCase().indexOf(q)>-1})
+    .sort(function(a,b){return view==='trash'?b.deleted-a.deleted:(!!b.pinned-!!a.pinned)||(b.updated-a.updated)});
+  if(!rows.length){var e=document.createElement('div');e.className='none';e.textContent=q?'找不到符合的筆記':view==='trash'?'垃圾桶是空的':catF!=='all'?'這個分類還沒有筆記':'還沒有筆記，按右上角「新增」';ul.appendChild(e);return}
+  var pins=view==='trash'?0:rows.filter(function(n){return n.pinned}).length,last=null;
+  rows.forEach(function(n,i){
+    if(pins&&!!n.pinned!==last){last=!!n.pinned;var g=document.createElement('li');g.className='grp';g.textContent=last?'置頂':'其他筆記';ul.appendChild(g)}
+    var li=document.createElement('li'),b=document.createElement('button');
+    if(n.id===newId)li.className='add';
+    else if(n.id===spinId)li.className='spin';
+    else if(first){li.className='add';li.style.animationDelay=(i*60)+'ms'}
+    b.className='row';b.setAttribute('aria-current',n.id===cur);
+    var t=document.createElement('b');t.textContent=(n.pinned&&!n.deleted?'📌 ':'')+(n.title||'未命名筆記');
+    var s=document.createElement('span'),tg=document.createElement('em');
+    tg.className='tag';tg.dataset.t=n.type;tg.textContent=TY[n.type]+(n.type==='code'?' · '+n.lang:'');
+    s.appendChild(tg);
+    if(n.cat&&getCat(n.cat)){var cl=document.createElement('em');cl.className='cn';cl.textContent=getCat(n.cat).name;s.appendChild(cl)}
+    s.appendChild(document.createTextNode(snip(n)));
+    b.appendChild(t);b.appendChild(s);b.onclick=function(){openNote(n.id)};
+    li.onmousemove=function(e){if(RM)return;var r=li.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;
+      li.style.transform='perspective(700px) rotateX('+(-y*10)+'deg) rotateY('+(x*10)+'deg) translateZ(6px)'};
+    li.onmouseleave=function(){li.style.transform=''};
+    li.appendChild(b);
+    if(n.type==='code'&&!n.deleted){b.classList.add('hc');var rc=document.createElement('button');rc.className='rc';rc.textContent='複製';rc.setAttribute('aria-label','複製程式碼');
+      rc.onclick=function(e){e.stopPropagation();copy(n.body,null,function(){rc.textContent='已複製 ✓';rc.classList.add('ok');setTimeout(function(){rc.textContent='複製';rc.classList.remove('ok')},1500)})};li.appendChild(rc)}
+    ul.appendChild(li)});
+  newId=null;spinId=null;first=false}
+function fillCat(sel,val){sel.innerHTML='';var o=document.createElement('option');o.value='';o.textContent='未分類';sel.appendChild(o);
+  cats.forEach(function(c){var x=document.createElement('option');x.value=c.id;x.textContent=c.name;sel.appendChild(x)});sel.value=val||''}
+function syncSel(){var cs=$('cat'),n=cur&&get(cur);if(cs&&n)fillCat(cs,n.cat)}
+function catInput(val,done){
+  var i=document.createElement('input');i.className='cin';i.placeholder='分類名稱，按 Enter';i.maxLength=12;i.value=val;i.setAttribute('aria-label','分類名稱');
+  i.onkeydown=function(e){
+    if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){var v=i.value.trim();if(v)done(v);editCat=null;renderCats();renderList();syncSel()}
+    else if(e.key==='Escape'){editCat=null;renderCats()}};
+  i.onblur=function(){if(editCat!==null){editCat=null;renderCats()}};
+  return i}
+function renderCats(){
+  var box=$('cats'),m=$('cmgr');box.hidden=view==='trash';
+  if(view==='trash'){m.hidden=true;return}
+  box.innerHTML='';
+  var live=notes.filter(function(n){return !n.deleted});
+  function chip(label,id,cnt){var b=document.createElement('button');b.className='chip';b.setAttribute('aria-pressed',catF===id);b.textContent=label;
+    if(cnt){var sm=document.createElement('small');sm.textContent=' '+cnt;b.appendChild(sm)}
+    b.onclick=function(){catF=id;editCat=null;renderCats();renderList()};return b}
+  box.appendChild(chip('全部','all',live.length));
+  cats.forEach(function(c){
+    if(editCat===c.id){box.appendChild(catInput(c.name,function(v){c.name=v;c.t=Date.now();saveCats()}));return}
+    var b=chip(c.name,c.id,live.filter(function(n){return n.cat===c.id}).length);if(c.id===newCatId)b.classList.add('new');box.appendChild(b)});
+  if(editCat==='new')box.appendChild(catInput('',function(v){var c={id:uid(),name:v,t:Date.now()};cats.push(c);saveCats();catF=c.id;newCatId=c.id}));
+  else{var a=document.createElement('button');a.className='chip add';a.textContent='＋ 分類';a.onclick=function(){editCat='new';renderCats()};box.appendChild(a)}
+  var cc=getCat(catF);m.innerHTML='';m.hidden=!(cc&&editCat===null);
+  if(!m.hidden){
+    var r=document.createElement('button');r.className='btn';r.textContent='重新命名';r.onclick=function(){editCat=cc.id;renderCats()};
+    var d=document.createElement('button');d.className='btn del';d.textContent='刪除分類';
+    arm(d,'刪除分類',function(){notes.forEach(function(n){if(n.cat===cc.id)n.cat=''});cats=cats.filter(function(c){return c.id!==cc.id});tomb[cc.id]=Date.now();catF='all';saveCats();save();renderCats();renderList();syncSel();toast('已刪除分類，裡面的筆記都還在')});
+    m.appendChild(r);m.appendChild(d)}
+  var inp=box.querySelector('.cin');if(inp){inp.focus();inp.select()}
+  newCatId=null}
+function renderTabs(){
+  $('cN').textContent=notes.filter(function(n){return !n.deleted}).length||'';
+  var t=notes.filter(function(n){return n.deleted}).length;$('cT').textContent=t||'';
+  document.querySelectorAll('.tabs button').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.v===view)});
+  $('tinfo').hidden=!(view==='trash'&&t)}
+function renderAll(){renderTabs();renderCats();renderList();renderPane()}
+function arm(b,label,fn){b.onclick=function(){if(b.dataset.arm){delete b.dataset.arm;b.textContent=label;fn();return}
+  b.dataset.arm=1;b.textContent='再按一次確認';clearTimeout(b.t);b.t=setTimeout(function(){delete b.dataset.arm;b.textContent=label},3000)}}
+function purge(id){notes=notes.filter(function(x){return x.id!==id});tomb[id]=Date.now();cur=null;save();$('app').classList.remove('editing');renderAll();toast('已永久刪除')}
+var SS={off:'尚未開啟',ok:'已同步',sync:'同步中…',err:'同步失敗'},sState='off',sMsg='',sLast=0;
+var RULES="rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /notebooks/{key} {\n      allow get, create, update: if true;\n      allow list, delete: if false;\n    }\n  }\n}";
+function setSync(st,msg){sState=st;sMsg=msg||'';if(st==='ok')sLast=Date.now();$('sync').dataset.s=st;if(!$('ov').hidden)renderDlg()}
+function base(){return 'https://firestore.googleapis.com/v1/projects/'+encodeURIComponent(cfg.pid)+'/databases/(default)/documents/notebooks/'+encodeURIComponent(cfg.key)}
+function api(method,qs,body){
+  return fetch(base()+'?'+qs,{method:method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined}).then(function(r){
+    return r.json().catch(function(){return {}}).then(function(j){
+      if(!r.ok){var e=new Error((j.error&&j.error.message)||('HTTP '+r.status));e.status=r.status;throw e}return j})})}
+function pull(){return api('GET','key='+encodeURIComponent(cfg.apiKey)).then(function(j){
+    var d={};try{d=JSON.parse(j.fields.data.stringValue)}catch(e){}return {data:d,ut:j.updateTime}},function(e){if(e.status===404)return {data:null,ut:null};throw e})}
+function push(st,ut){
+  var qs='key='+encodeURIComponent(cfg.apiKey)+'&updateMask.fieldPaths=data&'+(ut?'currentDocument.updateTime='+encodeURIComponent(ut):'currentDocument.exists=false');
+  return api('PATCH',qs,{fields:{data:{stringValue:JSON.stringify(st)}}})}
+function sig(st){return JSON.stringify([(st.notes||[]).map(function(n){return n.id+':'+(n.v||0)}).sort(),(st.cats||[]).map(function(c){return c.id+':'+(c.t||0)+c.name}).sort(),Object.keys(st.tomb||{}).sort()])}
+function mergeSt(R){
+  R=R||{};var rt=R.tomb||{};
+  Object.keys(rt).forEach(function(k){tomb[k]=Math.max(tomb[k]||0,rt[k])});
+  var map={};(R.notes||[]).forEach(function(n){if(n&&n.id)map[n.id]=norm(n)});
+  notes.forEach(function(n){var o=map[n.id];map[n.id]=(!o||(n.v||0)>=(o.v||0))?n:o});
+  var out=Object.keys(map).map(function(k){return map[k]}).filter(function(n){return !tomb[n.id]});
+  var cm={};(R.cats||[]).forEach(function(c){if(c&&c.id&&c.name)cm[c.id]=c});
+  cats.forEach(function(c){var o=cm[c.id];cm[c.id]=(!o||(c.t||0)>=(o.t||0))?c:o});
+  var oc=Object.keys(cm).map(function(k){return cm[k]}).filter(function(c){return !tomb[c.id]});
+  return {notes:out,cats:oc,tomb:tomb}}
+function syncNow(tries){
+  if(!cfg||busy)return Promise.resolve();
+  busy=true;setSync('sync');
+  var before=cur&&get(cur);
+  return pull().then(function(r){
+    stamp();var m=mergeSt(r.data);
+    notes=m.notes;cats=m.cats;resnap();pruneTomb();persist();
+    var need=!r.data||sig(r.data)!==sig(m);
+    return need?push(m,r.ut):null
+  }).then(function(){
+    busy=false;
+    if(catF!=='all'&&!getCat(catF))catF='all';
+    renderTabs();renderCats();renderList();
+    var after=cur&&get(cur);
+    if(cur&&!after){cur=null;$('app').classList.remove('editing');renderPane()}
+    else if(after!==before)renderPane();
+    setSync('ok')
+  }).catch(function(e){
+    busy=false;
+    if((tries||0)<2&&(e.status===409||/version|precondition|already exists/i.test(e.message||'')))return syncNow((tries||0)+1);
+    setSync('err',e instanceof TypeError?'連線失敗，請檢查網路':e.status===403?'被拒絕，請確認已發佈 Firestore 規則，且 API Key 正確':e.message)})}
+function genKey(){var a=new Uint8Array(16),h='';try{crypto.getRandomValues(a)}catch(e){for(var i=0;i<16;i++)a[i]=Math.random()*256}
+  for(var j=0;j<16;j++)h+=('0'+a[j].toString(16)).slice(-2);return h}
+function hhmm(t){return new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
+function closeDlg(){$('ov').hidden=true}
+function renderDlg(){
+  var d=$('dlg');
+  if(cfg){
+    d.innerHTML='<h2 id="dt">雲端同步</h2><p id="ds"></p><div class="r2"><span>同步金鑰</span><code id="kv"></code><button class="btn" id="sh"></button><button class="btn" id="ck">複製連線碼</button></div><div class="dw">在另一台裝置打開這個檔案，按 ☁，把「連線碼」貼上就會同步。金鑰等於密碼，請不要分享。</div><div class="acts"><button class="btn" id="off">中斷同步</button><button class="btn" id="cl">關閉</button><button class="btn main" id="now">立即同步</button></div>';
+    $('ds').textContent=SS[sState]+(sMsg?'：'+sMsg:'')+(sState==='ok'&&sLast?'（'+hhmm(sLast)+'）':'');
+    $('kv').textContent=showKey?cfg.key:'••••'+cfg.key.slice(-4);
+    $('sh').textContent=showKey?'隱藏':'顯示';
+    $('sh').onclick=function(){showKey=!showKey;renderDlg()};
+    $('ck').onclick=function(){copy(btoa(JSON.stringify({p:cfg.pid,a:cfg.apiKey,k:cfg.key})),null)};
+    $('now').onclick=function(){syncNow()};
+    $('cl').onclick=closeDlg;
+    arm($('off'),'中斷同步',function(){cfg=null;try{localStorage.removeItem('mopage-sync')}catch(e){}setSync('off');renderDlg();toast('已中斷同步，本機筆記都還在')});
+    return}
+  d.innerHTML='<h2 id="dt">雲端同步</h2><p>用你自己的 Firebase（免費額度就夠用）把筆記同步到不同裝置，只要設定一次。</p>'+
+   '<ol><li>到 Firebase 主控台建立專案，左側選「Firestore Database」→ 建立資料庫。</li>'+
+   '<li>在 Firestore 的「規則」貼上這段並發佈：<pre id="rl"></pre><button class="btn" id="cr">複製規則</button></li>'+
+   '<li>專案設定 → 一般 → 新增網頁應用程式，把顯示的 firebaseConfig 整段貼在這裡（第二台裝置改貼「連線碼」）：<textarea id="cfgT" spellcheck="false" placeholder="firebaseConfig 或連線碼"></textarea></li>'+
+   '<li>同步金鑰（第一台可留空，會自動產生）：<input class="fi" id="sk" spellcheck="false" placeholder="16 字以上的英文與數字"></li></ol>'+
+   '<div class="dw">金鑰等於密碼：知道金鑰的人就能讀寫這份筆記。</div><div class="de" id="de"></div>'+
+   '<div class="acts"><button class="btn" id="cl">關閉</button><button class="btn main" id="go">開始同步</button></div>';
+  $('rl').textContent=RULES;
+  $('cr').onclick=function(){copy(RULES,null)};
+  $('cl').onclick=closeDlg;
+  $('go').onclick=function(){
+    var t=$('cfgT').value.trim(),k=$('sk').value.trim(),pid='',ak='',m;
+    try{var j=JSON.parse(atob(t));pid=j.p;ak=j.a;if(j.k&&!k)k=j.k}catch(e){
+      m=t.match(/projectId["']?\s*:\s*["']([^"']+)["']/);pid=m?m[1]:'';
+      m=t.match(/apiKey["']?\s*:\s*["']([^"']+)["']/);ak=m?m[1]:''}
+    if(!pid||!ak){$('de').textContent='找不到 projectId 或 apiKey，請把 firebaseConfig 整段貼上。';return}
+    if(!k)k=genKey();
+    if(!/^[A-Za-z0-9_-]{16,64}$/.test(k)){$('de').textContent='金鑰需為 16 個字以上的英文與數字。';return}
+    cfg={pid:pid,apiKey:ak,key:k};try{localStorage.setItem('mopage-sync',JSON.stringify(cfg))}catch(e){}
+    renderDlg();syncNow()}}
+function stat(sv){var s=$('st');if(!s)return;s.className='st'+(sv?' sv':'');s.textContent=sv?'儲存中…':'已儲存'}
+var cT;function commit(){stat(true);clearTimeout(cT);cT=setTimeout(function(){save();renderList();stat(false)},350)}
+function copy(t,sel,onOk){
+  if(!t){toast('還沒有內容可以複製');return}
+  function ok(){toast('已複製');if(onOk)onOk()}
+  function fb(){var a=document.createElement('textarea');a.value=t;a.setAttribute('readonly','');a.style.cssText='position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(a);a.select();var r=false;try{r=document.execCommand('copy')}catch(e){}a.remove();
+    if(r)ok();else{if(sel){sel.focus();sel.select()}toast('瀏覽器不允許自動複製，已選取內容，請按 Ctrl+C')}}
+  if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(ok,fb);else fb()}
+function buildText(n,ct){
+  ct.innerHTML='<textarea class="bd" id="bd" placeholder="開始寫…" aria-label="內容"></textarea>';
+  var bd=$('bd');bd.value=n.body;
+  function grow(){bd.style.height='auto';bd.style.height=Math.max(bd.scrollHeight,innerHeight*.55)+'px'}
+  bd.oninput=function(){n.body=bd.value;n.updated=Date.now();commit();grow()};grow()}
+function buildCode(n,ct){
+  ct.innerHTML='<div class="code"><div class="ch"><select id="lang" aria-label="語言"></select><button class="cp" id="cp">複製程式碼</button></div><div class="cw"><pre class="ln" id="ln" aria-hidden="true"></pre><textarea class="cb" id="cb" spellcheck="false" wrap="off" placeholder="貼上或輸入程式碼…" aria-label="程式碼"></textarea></div></div>';
+  var sel=$('lang'),cb=$('cb'),ln=$('ln');
+  LANGS.forEach(function(l){var o=document.createElement('option');o.textContent=l;sel.appendChild(o)});
+  sel.value=n.lang;cb.value=n.body;
+  function fit(){var c=cb.value.split('\n').length,a=[];for(var i=1;i<=c;i++)a.push(i);ln.textContent=a.join('\n');cb.style.height='auto';cb.style.height=Math.max(cb.scrollHeight,240)+'px'}
+  sel.onchange=function(){n.lang=sel.value;n.updated=Date.now();commit()};
+  cb.oninput=function(){n.body=cb.value;n.updated=Date.now();commit();fit()};
+  cb.onkeydown=function(e){if(e.key==='Tab'){e.preventDefault();cb.setRangeText('  ',cb.selectionStart,cb.selectionEnd,'end');cb.dispatchEvent(new Event('input'))}};
+  var cpb=$('cp');cpb.onclick=function(){copy(n.body,cb,function(){cpb.textContent='已複製 ✓';cpb.classList.add('ok');clearTimeout(cpb.t);cpb.t=setTimeout(function(){cpb.textContent='複製程式碼';cpb.classList.remove('ok')},1500)})};fit()}
+function buildTodo(n,ct){
+  ct.innerHTML='<div class="prog" id="pg"></div><div id="its"></div><input class="addi" id="ad" placeholder="新增項目，按 Enter" aria-label="新增項目">';
+  var box=$('its');
+  function prog(){var d=n.items.filter(function(i){return i.d}).length;$('pg').textContent=n.items.length?'完成 '+d+' / '+n.items.length:'還沒有項目'}
+  function mk(it,anim){
+    var r=document.createElement('div');r.className='it'+(it.d?' done':'')+(anim?' in':'');
+    var l=document.createElement('label'),c=document.createElement('input'),b=document.createElement('span');
+    l.className='ck';c.type='checkbox';c.checked=!!it.d;c.setAttribute('aria-label','完成');b.className='box';l.appendChild(c);l.appendChild(b);
+    var t=document.createElement('input');t.className='tx';t.value=it.t;t.setAttribute('aria-label','項目內容');
+    var x=document.createElement('button');x.className='x';x.textContent='✕';x.setAttribute('aria-label','刪除項目');
+    c.onchange=function(){it.d=c.checked;r.classList.toggle('done',it.d);b.classList.remove('flip');void b.offsetWidth;b.classList.add('flip');n.updated=Date.now();prog();commit()};
+    t.oninput=function(){it.t=t.value;n.updated=Date.now();commit()};
+    x.onclick=function(){r.classList.add('gone');setTimeout(function(){var k=n.items.indexOf(it);if(k>-1)n.items.splice(k,1);r.remove();prog();n.updated=Date.now();commit()},RM?0:260)};
+    r.appendChild(l);r.appendChild(t);r.appendChild(x);return r}
+  n.items.forEach(function(it){box.appendChild(mk(it,false))});prog();
+  $('ad').onkeydown=function(e){
+    if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229&&this.value.trim()){
+      var it={t:this.value.trim(),d:false};n.items.push(it);box.appendChild(mk(it,true));this.value='';prog();n.updated=Date.now();commit()}}}
+function renderPane(){
+  var p=$('pane'),n=cur&&get(cur);
+  if(!n){if(view==='trash'){p.innerHTML='<div class="empty"><div><p>垃圾桶裡的筆記可以查看或還原。</p></div></div>';return}
+    p.innerHTML='<div class="empty"><div><p>選一則筆記，或新增一則。</p><button class="btn main" id="new2">＋ 新增</button></div></div>';
+    $('new2').onclick=function(e){e.stopPropagation();setMenu(true)};return}
+  p.innerHTML='<div class="bar"><button class="btn back" id="back">‹ 返回</button><span class="st" id="st"></span>'+
+    (n.deleted?'<button class="btn" id="rs">還原</button><button class="btn del" id="pd">永久刪除</button>':'<select class="csel" id="cat" aria-label="分類"></select><button class="btn" id="pin"></button><button class="btn del" id="del">刪除</button>')+'</div>'+
+    '<div class="scroll"><div class="sheet"><div class="kind"><em class="tag" id="kd"></em></div><input class="ti" id="ti" aria-label="標題"><div id="ct"></div></div></div>';
+  var kd=$('kd'),ti=$('ti');kd.dataset.t=n.type;kd.textContent=TY[n.type];
+  ti.placeholder=n.type==='code'?'標題（例如：防抖函式）':n.type==='todo'?'標題（例如：這週要做）':'標題';
+  ti.value=n.title;
+  if(n.type==='code')buildCode(n,$('ct'));else if(n.type==='todo')buildTodo(n,$('ct'));else buildText(n,$('ct'));
+  ti.oninput=function(){n.title=ti.value;n.updated=Date.now();commit()};
+  ti.onkeydown=function(e){if(e.key==='Enter'&&!e.isComposing){e.preventDefault();var f=$('bd')||$('cb')||$('ad');if(f)f.focus()}};
+  $('back').onclick=function(){$('app').classList.remove('editing')};
+  if(n.deleted){
+    $('st').textContent='在垃圾桶中，唯讀';
+    p.querySelectorAll('.sheet input,.sheet textarea,.sheet select').forEach(function(x){x.disabled=true});
+    p.querySelectorAll('.x,.addi').forEach(function(x){x.hidden=true});
+    $('rs').onclick=function(){n.deleted=0;cur=null;save();$('app').classList.remove('editing');renderAll();toast('已還原')};
+    arm($('pd'),'永久刪除',function(){purge(n.id)})
+  }else{
+    var pinLabel=function(){$('pin').textContent=n.pinned?'取消置頂':'置頂'};pinLabel();stat(false);
+    var cs=$('cat');fillCat(cs,n.cat);cs.onchange=function(){n.cat=cs.value;save();renderCats();renderList()};
+    $('pin').onclick=function(){n.pinned=!n.pinned;spinId=n.id;save();renderList();pinLabel();toast(n.pinned?'已置頂':'已取消置頂')};
+    $('del').onclick=function(){
+      var el=document.querySelector('.row[aria-current="true"]');if(el&&!RM)el.parentNode.classList.add('out');
+      setTimeout(function(){n.deleted=Date.now();cur=null;save();$('app').classList.remove('editing');renderAll();
+        toast('已移到垃圾桶','復原',function(){n.deleted=0;save();renderAll()})},el&&!RM?400:0)}
+  }}
+function openNote(id){cur=id;$('app').classList.add('editing');renderList();renderPane()}
+function create(type){
+  var n=norm({id:uid(),type:type,pinned:false,cat:catF!=='all'?catF:'',updated:Date.now()});
+  view='notes';
+  notes.push(n);save();query='';$('q').value='';newId=n.id;renderTabs();renderCats();openNote(n.id);$('ti').focus()}
+var menu=$('menu');
+function setMenu(o){menu.hidden=!o;$('new').setAttribute('aria-expanded',o)}
+$('new').onclick=function(e){e.stopPropagation();setMenu(menu.hidden)};
+menu.onclick=function(e){var b=e.target.closest('button[data-t]');if(b){setMenu(false);create(b.dataset.t)}};
+document.addEventListener('click',function(e){if(!menu.hidden&&!menu.contains(e.target))setMenu(false)});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){setMenu(false);closeDlg()}});
+$('sync').onclick=function(){$('ov').hidden=false;renderDlg()};
+$('ov').onclick=function(e){if(e.target===this)closeDlg()};
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&cfg)syncNow()});
+setInterval(function(){if(cfg&&!document.hidden)syncNow()},60000);
+document.querySelector('.tabs').onclick=function(e){var b=e.target.closest('button[data-v]');if(!b||b.dataset.v===view)return;
+  view=b.dataset.v;cur=null;first=true;$('app').classList.remove('editing');renderAll()};
+arm($('et'),'清空垃圾桶',function(){notes=notes.filter(function(n){if(n.deleted){tomb[n.id]=Date.now();return false}return true});cur=null;save();renderAll();toast('已清空垃圾桶')});
+$('q').oninput=function(){query=this.value;renderList()};
+$('theme').onclick=function(){var r=document.documentElement,d=r.getAttribute('data-theme'),dark=d?d==='dark':matchMedia('(prefers-color-scheme: dark)').matches;r.setAttribute('data-theme',dark?'light':'dark')};
+load();save();
+if(innerWidth>700){var f=notes.filter(function(n){return !n.deleted}).sort(function(a,b){return (!!b.pinned-!!a.pinned)||(b.updated-a.updated)})[0];if(f)cur=f.id}
+renderAll();
+if(cfg)syncNow();
+})();
+</script>
+</body>
+</html>
